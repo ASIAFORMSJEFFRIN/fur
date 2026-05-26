@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>AR Furniture Studio</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+    :root{
+      --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3d;
+      --accent:#6c63ff;--accent2:#ff6584;--accent3:#43e97b;
+      --text:#f0f0ff;--text-dim:#8888aa;--card-glow:0 0 40px rgba(108,99,255,.15);
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 10% 10%,rgba(108,99,255,.12) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 90% 80%,rgba(255,101,132,.08) 0%,transparent 60%);pointer-events:none;z-index:0}
+    .wrap{position:relative;z-index:1}
+
+    /* ── Header ── */
+    header{padding:20px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;background:rgba(10,10,15,.9)}
+    .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem}.logo span{color:var(--accent)}
+    .header-badge{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:.68rem;font-weight:700;padding:5px 12px;border-radius:20px;text-transform:uppercase}
+
+    /* ── Tabs ── */
+    nav.tabs{display:flex;gap:6px;padding:16px 32px;border-bottom:1px solid var(--border);overflow-x:auto}
+    .tab-btn{padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:.86rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+    .tab-btn:hover:not(.active){border-color:var(--accent);color:var(--text)}
+
+    /* ── Pages ── */
+    .page{display:none;padding:32px;max-width:1000px;margin:0 auto}.page.active{display:block}
+
+    /* ── Cards ── */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--card-glow);margin-bottom:20px}
+    .card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+    .card-title .icon{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),#9b59b6);border-radius:7px;display:grid;place-items:center;font-size:.9rem}
+    .page-header{margin-bottom:26px}
+    .page-header h1{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:5px}
+    .page-header p{color:var(--text-dim);font-size:.9rem;line-height:1.6}
+
+    /* ── GitHub Connect ── */
+    .github-connect{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+    .github-connect .fg{flex:1;min-width:220px}
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:.76rem;color:var(--text-dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+    .form-group input,.form-group select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;transition:border-color .2s}
+    .form-group input:focus,.form-group select:focus{border-color:var(--accent)}
+    .form-group select option{background:var(--surface2)}
+
+    /* ── Buttons ── */
+    .btn{padding:10px 22px;border-radius:9px;border:none;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:500;cursor:pointer;transition:all .2s}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#9b59b6);color:#fff}
+    .btn-primary:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 6px 20px rgba(108,99,255,.3)}
+    .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .btn-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:.84rem;padding:8px 16px}
+    .btn-secondary:hover{border-color:var(--accent)}
+    .btn-danger{background:rgba(255,101,132,.12);border:1px solid rgba(255,101,132,.3);color:var(--accent2);font-size:.8rem;padding:6px 12px}
+    .btn-full{width:100%;padding:13px;font-size:.98rem;text-align:center}
+
+    /* ── Models Grid from GitHub ── */
+    .models-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
+    .model-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;position:relative}
+    .model-item:hover,.model-item.selected{border-color:var(--accent);background:rgba(108,99,255,.08)}
+    .model-item.selected::after{content:'✓';position:absolute;top:8px;right:10px;background:var(--accent);color:#fff;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.7rem;font-weight:700}
+    .model-icon{font-size:2rem;margin-bottom:8px;text-align:center}
+    .model-filename{font-size:.8rem;font-weight:600;color:var(--text);word-break:break-all;margin-bottom:3px}
+    .model-ext{font-size:.7rem;color:var(--accent);text-transform:uppercase}
+
+    /* ── Dimensions ── */
+    .dims-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .input-unit{position:relative}
+    .input-unit input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 36px 9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;transition:border-color .2s}
+    .input-unit input:focus{border-color:var(--accent)}
+    .input-unit .unit{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.7rem;color:var(--text-dim)}
+    .size-labels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:4px}
+    .size-labels span{font-size:.74rem;color:var(--text-dim);text-align:center}
+
+    /* ── Products List ── */
+    .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+    .product-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all .25s}
+    .product-card:hover{border-color:var(--accent);box-shadow:var(--card-glow);transform:translateY(-2px)}
+    .product-thumb{height:130px;background:var(--surface2);display:grid;place-items:center;font-size:2.8rem;border-bottom:1px solid var(--border);position:relative}
+    .product-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(108,99,255,.07),rgba(255,101,132,.04))}
+    .product-body{padding:14px}
+    .product-name{font-family:'Syne',sans-serif;font-weight:700;font-size:.92rem;margin-bottom:2px}
+    .product-cat{font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+    .dims-chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+    .dim-chip{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:.7rem;color:var(--text-dim)}
+    .product-actions{display:flex;gap:6px}
+    .badge-ar{position:absolute;top:7px;right:7px;background:linear-gradient(135deg,var(--accent3),#00c9a7);color:#000;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;z-index:2}
+    .badge-gh{position:absolute;top:7px;left:7px;background:rgba(255,255,255,.12);color:#fff;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;z-index:2}
+
+    /* ── Status messages ── */
+    .status-box{border-radius:10px;padding:12px 16px;font-size:.84rem;margin-top:12px;line-height:1.5;display:none}
+    .status-loading{background:rgba(108,99,255,.1);border:1px solid rgba(108,99,255,.3);color:#a89fff;display:flex;align-items:center;gap:10px}
+    .status-error{background:rgba(255,101,132,.1);border:1px solid rgba(255,101,132,.3);color:var(--accent2)}
+    .status-success{background:rgba(67,233,123,.1);border:1px solid rgba(67,233,123,.3);color:var(--accent3)}
+    .spin{width:16px;height:16px;border:2px solid rgba(108,99,255,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Empty state ── */
+    .empty{text-align:center;padding:60px 20px;color:var(--text-dim)}
+    .empty .ei{font-size:3.5rem;margin-bottom:12px;opacity:.4}
+    .empty h3{font-family:'Syne',sans-serif;font-size:1.1rem;color:var(--text);margin-bottom:6px}
+    .empty p{font-size:.86rem;line-height:1.6}
+
+    /* ── QR Modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);display:none;place-items:center;z-index:200}
+    .modal-overlay.open{display:grid}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:30px;max-width:390px;width:92%;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.6);animation:popIn .22s ease}
+    @keyframes popIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+    .modal-close{position:absolute;top:13px;right:13px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;width:28px;height:28px;display:grid;place-items:center;cursor:pointer;color:var(--text-dim);font-size:.9rem}
+    .modal-close:hover{border-color:var(--accent2);color:var(--text)}
+    .modal h2{font-family:'Syne',sans-serif;font-size:1.15rem;margin-bottom:4px}
+    .modal .sub{color:var(--text-dim);font-size:.82rem;margin-bottom:18px}
+    .qr-wrap{background:#fff;border-radius:14px;padding:16px;display:flex;justify-content:center;margin-bottom:16px}
+    .qr-note{background:rgba(67,233,123,.08);border:1px solid rgba(67,233,123,.25);border-radius:9px;padding:10px 14px;font-size:.78rem;color:var(--accent3);margin-bottom:12px;line-height:1.5}
+    .modal-actions{display:flex;gap:8px}
+    .modal-actions .btn{flex:1;text-align:center;font-size:.84rem}
+
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:26px;right:26px;background:var(--surface);border:1px solid var(--accent3);border-radius:11px;padding:12px 18px;font-size:.84rem;color:var(--accent3);box-shadow:0 8px 28px rgba(0,0,0,.4);transform:translateY(80px);opacity:0;transition:all .3s;z-index:300}
+    .toast.show{transform:translateY(0);opacity:1}
+
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">AR<span>Furniture</span> Studio</div>
+    <span class="header-badge">⚡ GitHub → AR</span>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="showTab('setup',this)">⚙️ GitHub Setup</button>
+    <button class="tab-btn" onclick="showTab('add',this)">➕ Add Product</button>
+    <button class="tab-btn" onclick="showTab('products',this)">📦 My Products</button>
+  </nav>
+
+  <!-- ══════ TAB 1: GITHUB SETUP ══════ -->
+  <div id="page-setup" class="page active">
+    <div class="page-header">
+      <h1>Connect GitHub Repo</h1>
+      <p>உங்கள் GitHub repo-ல் இருக்கும் models folder-ல் இருந்து 3D files directly fetch ஆகும் — any device-ல் AR work ஆகும்!</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="icon">🐙</div>GitHub Repository Details</div>
+
+      <div class="github-connect">
+        <div class="fg">
+          <div class="form-group">
+            <label>GitHub Username</label>
+            <input type="text" id="ghUser" placeholder="e.g. rahman123" oninput="saveGHConfig()"/>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="form-group">
+            <label>Repository Name</label>
+            <input type="text" id="ghRepo" placeholder="e.g. my-furniture" oninput="saveGHConfig()"/>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="form-group">
+            <label>Models Folder Path</label>
+            <input type="text" id="ghFolder" placeholder="3d" oninput="saveGHConfig()"/>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="form-group">
+            <label>Branch</label>
+            <input type="text" id="ghBranch" placeholder="main" oninput="saveGHConfig()"/>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="fetchGitHubModels()" id="fetchBtn">
+        🔍 Fetch Models from GitHub
+      </button>
+
+      <div class="status-box status-loading" id="statusLoading">
+        <div class="spin"></div>
+        <span id="statusLoadingText">GitHub API-ல் connect ஆகுது…</span>
+      </div>
+      <div class="status-box status-error" id="statusError"></div>
+      <div class="status-box status-success" id="statusSuccess"></div>
+
+      <div id="fetchedModels" style="display:none">
+        <div style="margin-top:20px;margin-bottom:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:.92rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px">
+          📁 Found Models
+        </div>
+        <div class="models-grid" id="modelsGrid"></div>
+        <div style="margin-top:16px">
+          <button class="btn btn-primary btn-full" onclick="showTab('add',document.querySelectorAll('.tab-btn')[1])">
+            ➕ Add Products with these models →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="icon">💡</div>How it Works</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:1.4rem;margin-bottom:8px">🐙</div>
+          <div style="font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;margin-bottom:4px">GitHub Models</div>
+          <div style="font-size:.78rem;color:var(--text-dim);line-height:1.5">உங்கள் repo-ல் .glb files upload பண்ணுங்க</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:1.4rem;margin-bottom:8px">📐</div>
+          <div style="font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;margin-bottom:4px">Dimensions Set</div>
+          <div style="font-size:.78rem;color:var(--text-dim);line-height:1.5">Width, Height, Depth cm-ல் enter பண்ணுங்க</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:1.4rem;margin-bottom:8px">📱</div>
+          <div style="font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;margin-bottom:4px">QR Scan → AR</div>
+          <div style="font-size:.78rem;color:var(--text-dim);line-height:1.5">Any phone-ல் scan → room-ல் exact size furniture தெரியும்</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ TAB 2: ADD PRODUCT ══════ -->
+  <div id="page-add" class="page">
+    <div class="page-header">
+      <h1>Add Product</h1>
+      <p>GitHub-ல் இருக்கும் model select பண்ணி dimensions குடுங்க.</p>
+    </div>
+
+    <!-- GitHub model picker -->
+    <div class="card">
+      <div class="card-title"><div class="icon">🗂️</div>Select 3D Model from GitHub</div>
+
+      <div id="addPageModelPicker">
+        <div class="empty" style="padding:30px 20px">
+          <div class="ei" style="font-size:2rem">🐙</div>
+          <h3>GitHub not connected</h3>
+          <p>First go to <strong>GitHub Setup</strong> tab and fetch your models.</p>
+          <button class="btn btn-secondary" style="margin-top:12px" onclick="showTab('setup',document.querySelectorAll('.tab-btn')[0])">⚙️ Go to Setup</button>
+        </div>
+      </div>
+
+      <div id="selectedModelInfo" style="display:none;margin-top:14px;background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.3);border-radius:10px;padding:12px 16px;font-size:.84rem">
+        <span style="color:var(--text-dim)">Selected:</span>
+        <strong id="selectedModelName" style="color:var(--accent);margin-left:6px"></strong>
+        <span id="selectedModelUrl" style="display:none"></span>
+      </div>
+    </div>
+
+    <!-- Product details -->
+    <div class="card">
+      <div class="card-title"><div class="icon">✏️</div>Product Details</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label>Product Name</label>
+          <input type="text" id="prodName" placeholder="e.g. Luxury L-Shape Sofa"/>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="prodCategory">
+            <option value="Sofa">🛋️ Sofa</option>
+            <option value="Chair">🪑 Chair</option>
+            <option value="Table">🪵 Table</option>
+            <option value="Bed">🛏️ Bed</option>
+            <option value="Wardrobe">🚪 Wardrobe</option>
+            <option value="Shelf">📚 Shelf</option>
+            <option value="Desk">🖥️ Desk</option>
+            <option value="Other">📦 Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Exact Dimensions</label>
+        <div class="size-labels"><span>Width (cm)</span><span>Height (cm)</span><span>Depth (cm)</span></div>
+        <div class="dims-row">
+          <div class="input-unit"><input type="number" id="dimW" placeholder="200" min="1"/><span class="unit">cm</span></div>
+          <div class="input-unit"><input type="number" id="dimH" placeholder="85" min="1"/><span class="unit">cm</span></div>
+          <div class="input-unit"><input type="number" id="dimL" placeholder="90" min="1"/><span class="unit">cm</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label>Price (optional)</label>
+          <div class="input-unit"><input type="number" id="prodPrice" placeholder="24999"/><span class="unit">₹</span></div>
+        </div>
+        <div class="form-group">
+          <label>Description (optional)</label>
+          <input type="text" id="prodDesc" placeholder="Premium velvet, 5-seater"/>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="addBtn" onclick="addProduct()">
+        ✨ Add Product &amp; Generate QR
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════ TAB 3: PRODUCTS ══════ -->
+  <div id="page-products" class="page">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+      <div>
+        <h1>My Products</h1>
+        <p>QR scan பண்ணா GitHub model directly load ஆகி AR-ல் காட்டும்.</p>
+      </div>
+      <button class="btn btn-secondary" onclick="showTab('add',document.querySelectorAll('.tab-btn')[1])">+ Add More</button>
+    </div>
+    <div id="productGrid" class="product-grid"></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- ══════ QR MODAL ══════ -->
+<div class="modal-overlay" id="qrModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeQR()">✕</button>
+    <h2>📱 AR QR Code</h2>
+    <p class="sub" id="qrSub">Scan to view in room</p>
+    <div class="qr-wrap"><div id="qrDiv"></div></div>
+    <div class="qr-note">
+      ✅ <strong>GitHub model directly load ஆகும்</strong> — Any phone-ல் scan பண்ணினாலும் works! Model internet-ல் இருந்து load ஆகும்.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="dlQR()">⬇️ Download</button>
+      <button class="btn btn-primary" onclick="copyQRLink()">🔗 Copy Link</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<script>
+// ─── State ──────────────────────────────────────────────────────────────
+let ghModels    = [];   // [{name, rawUrl, downloadUrl}]
+let selectedModelUrl  = null;
+let selectedModelName = null;
+let products    = JSON.parse(localStorage.getItem('arProducts_v3') || '[]');
+let currentQRUrl = null;
+
+const catIcons = {Sofa:'🛋️',Chair:'🪑',Table:'🪵',Bed:'🛏️',Wardrobe:'🚪',Shelf:'📚',Desk:'🖥️',Other:'📦'};
+
+// ─── Config persistence ─────────────────────────────────────────────────
+function saveGHConfig() {
+  localStorage.setItem('ghConfig', JSON.stringify({
+    user:   document.getElementById('ghUser').value.trim(),
+    repo:   document.getElementById('ghRepo').value.trim(),
+    folder: document.getElementById('ghFolder').value.trim() || 'models',
+    branch: document.getElementById('ghBranch').value.trim() || 'main'
+  }));
+}
+function loadGHConfig() {
+  const c = JSON.parse(localStorage.getItem('ghConfig') || '{}');
+  document.getElementById('ghUser').value   = c.user   || 'ASIAFORMSJEFFRIN';
+  document.getElementById('ghRepo').value   = c.repo   || 'fur';
+  document.getElementById('ghFolder').value = c.folder || '3d';
+  document.getElementById('ghBranch').value = c.branch || 'main';
+}
+
+// ─── Tab Navigation ─────────────────────────────────────────────────────
+function showTab(tab, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (tab === 'products') renderProducts();
+  if (tab === 'add')      refreshAddPagePicker();
+}
+
+// ─── GitHub Fetch ────────────────────────────────────────────────────────
+async function fetchGitHubModels() {
+  const user   = document.getElementById('ghUser').value.trim();
+  const repo   = document.getElementById('ghRepo').value.trim();
+  const folder = document.getElementById('ghFolder').value.trim() || 'models';
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+
+  if (!user || !repo) return showToast('⚠️ Username மற்றும் Repo name enter பண்ணுங்க');
+
+  setStatus('loading', 'GitHub API-ல் connect ஆகுது…');
+  document.getElementById('fetchBtn').disabled = true;
+  document.getElementById('fetchedModels').style.display = 'none';
+
+  try {
+    // GitHub Contents API
+    const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/${folder}?ref=${branch}`;
+    const res = await fetch(apiUrl, { headers: { 'Accept': 'application/vnd.github.v3+json' } });
+
+    if (!res.ok) {
+      if (res.status === 404) throw new Error(`Repo "${user}/${repo}" அல்லது folder "${folder}" கிடைக்கல. Repo public-ஆ இருக்கணும்.`);
+      if (res.status === 403) throw new Error('GitHub API rate limit. சிறிது நேரம் கழித்து try பண்ணுங்க.');
+      throw new Error(`GitHub error: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    // Debug: log what API returned
+    console.log('GitHub API response:', data);
+
+    // API can return: array (folder contents), object (single file), or error object
+    if (!Array.isArray(data)) {
+      if (data.message) throw new Error(`GitHub: ${data.message}`);
+      // Single file returned — wrap it
+      if (data.type === 'file') {
+        const models2 = /\.(glb|gltf)$/i.test(data.name) ? [data] : [];
+        if (!models2.length) throw new Error(`"${folder}" is a single file, not a folder with .glb files.`);
+        ghModels = models2.map(f => ({
+          name: f.name,
+          rawUrl: `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${folder}/${f.name}`,
+          cdnUrl: `https://cdn.jsdelivr.net/gh/${user}/${repo}@${branch}/${folder}/${f.name}`,
+          size: f.size || 0
+        }));
+        setStatus('success', `✅ 1 model found!`);
+        renderGHModels();
+        document.getElementById('fetchedModels').style.display = 'block';
+        saveGHConfig();
+        return;
+      }
+      throw new Error(`Unexpected response from GitHub API. Check username, repo, and folder path.`);
+    }
+
+    const files = data;
+    // Filter only .glb and .gltf files
+    const models = files.filter(f => f.type === 'file' && /\.(glb|gltf)$/i.test(f.name));
+
+    if (models.length === 0) {
+      throw new Error(`"${folder}" folder-ல் .glb அல்லது .gltf files இல்லை. Files upload பண்ணிட்டீங்களா?`);
+    }
+
+    // Build raw URLs (jsdelivr CDN for better CORS support)
+    ghModels = models.map(f => ({
+      name: f.name,
+      rawUrl: `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${folder}/${f.name}`,
+      cdnUrl: `https://cdn.jsdelivr.net/gh/${user}/${repo}@${branch}/${folder}/${f.name}`,
+      size: f.size
+    }));
+
+    setStatus('success', `✅ ${models.length} model${models.length>1?'s':''} found in "${folder}" folder!`);
+    renderGHModels();
+    document.getElementById('fetchedModels').style.display = 'block';
+    saveGHConfig();
+
+  } catch(e) {
+    setStatus('error', '❌ ' + e.message);
+  } finally {
+    document.getElementById('fetchBtn').disabled = false;
+  }
+}
+
+function setStatus(type, msg) {
+  ['statusLoading','statusError','statusSuccess'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  if (type === 'loading') {
+    const el = document.getElementById('statusLoading');
+    el.style.display = 'flex';
+    document.getElementById('statusLoadingText').textContent = msg;
+  } else if (type === 'error') {
+    const el = document.getElementById('statusError');
+    el.style.display = 'block';
+    el.textContent = msg;
+  } else if (type === 'success') {
+    const el = document.getElementById('statusSuccess');
+    el.style.display = 'block';
+    el.textContent = msg;
+  }
+}
+
+function renderGHModels() {
+  const grid = document.getElementById('modelsGrid');
+  grid.innerHTML = ghModels.map((m,i) => `
+    <div class="model-item" id="gm-${i}" onclick="selectGHModel(${i})">
+      <div class="model-icon">🗂️</div>
+      <div class="model-filename">${m.name}</div>
+      <div class="model-ext">${m.name.split('.').pop().toUpperCase()} · ${(m.size/1024).toFixed(0)} KB</div>
+    </div>
+  `).join('');
+}
+
+function selectGHModel(i) {
+  document.querySelectorAll('.model-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('gm-' + i)?.classList.add('selected');
+  selectedModelUrl  = ghModels[i].rawUrl;
+  selectedModelName = ghModels[i].name;
+  // Also update add-page selection
+  refreshAddPagePicker(i);
+}
+
+// ─── Add Page Picker ─────────────────────────────────────────────────────
+function refreshAddPagePicker(autoSelect) {
+  const wrap = document.getElementById('addPageModelPicker');
+  if (ghModels.length === 0) {
+    wrap.innerHTML = `
+      <div class="empty" style="padding:24px 20px">
+        <div class="ei" style="font-size:1.8rem">🐙</div>
+        <h3>GitHub not connected</h3>
+        <p>First go to <strong>GitHub Setup</strong> tab and fetch your models.</p>
+        <button class="btn btn-secondary" style="margin-top:10px" onclick="showTab('setup',document.querySelectorAll('.tab-btn')[0])">⚙️ Go to Setup</button>
+      </div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <div style="font-size:.8rem;color:var(--text-dim);margin-bottom:10px">Select a model to use for this product:</div>
+    <div class="models-grid" id="addModelsGrid">
+      ${ghModels.map((m,i) => `
+        <div class="model-item ${i===autoSelect?'selected':''}" id="am-${i}" onclick="selectAddModel(${i})">
+          <div class="model-icon">🗂️</div>
+          <div class="model-filename">${m.name}</div>
+          <div class="model-ext">${m.name.split('.').pop().toUpperCase()} · ${(m.size/1024).toFixed(0)} KB</div>
+        </div>`).join('')}
+    </div>`;
+  if (autoSelect !== undefined) {
+    selectedModelUrl  = ghModels[autoSelect].rawUrl;
+    selectedModelName = ghModels[autoSelect].name;
+    updateSelectedInfo();
+  }
+}
+
+function selectAddModel(i) {
+  document.querySelectorAll('#addModelsGrid .model-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('am-' + i)?.classList.add('selected');
+  selectedModelUrl  = ghModels[i].rawUrl;
+  selectedModelName = ghModels[i].name;
+  updateSelectedInfo();
+}
+
+function updateSelectedInfo() {
+  const box = document.getElementById('selectedModelInfo');
+  box.style.display = 'block';
+  document.getElementById('selectedModelName').textContent = selectedModelName;
+  document.getElementById('selectedModelUrl').textContent  = selectedModelUrl;
+  // Auto-fill product name from filename (remove extension)
+  const nameField = document.getElementById('prodName');
+  if (!nameField.value) {
+    nameField.value = selectedModelName.replace(/\.(glb|gltf)$/i,'').replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  }
+}
+
+// ─── Add Product ─────────────────────────────────────────────────────────
+function addProduct() {
+  const name     = document.getElementById('prodName').value.trim();
+  const category = document.getElementById('prodCategory').value;
+  const w        = document.getElementById('dimW').value;
+  const h        = document.getElementById('dimH').value;
+  const l        = document.getElementById('dimL').value;
+  const price    = document.getElementById('prodPrice').value;
+  const desc     = document.getElementById('prodDesc').value.trim();
+
+  if (!selectedModelUrl) return showToast('⚠️ Model select பண்ணுங்க');
+  if (!name)             return showToast('⚠️ Product name enter பண்ணுங்க');
+  if (!w || !h || !l)    return showToast('⚠️ Width, Height, Depth மூன்றும் enter பண்ணுங்க');
+
+  const product = {
+    id: Date.now(),
+    name, category, w, h, l, price, desc,
+    modelUrl: selectedModelUrl,
+    modelName: selectedModelName,
+    createdAt: new Date().toLocaleDateString('en-IN')
+  };
+
+  products.push(product);
+  localStorage.setItem('arProducts_v3', JSON.stringify(products));
+
+  showToast('✅ Product added! QR ready.');
+  resetAddForm();
+  setTimeout(() => openQR(product), 400);
+}
+
+function resetAddForm() {
+  document.getElementById('prodName').value = '';
+  document.getElementById('dimW').value = '';
+  document.getElementById('dimH').value = '';
+  document.getElementById('dimL').value = '';
+  document.getElementById('prodPrice').value = '';
+  document.getElementById('prodDesc').value = '';
+  document.getElementById('selectedModelInfo').style.display = 'none';
+  document.querySelectorAll('#addModelsGrid .model-item').forEach(el => el.classList.remove('selected'));
+  selectedModelUrl = null; selectedModelName = null;
+}
+
+// ─── Products List ────────────────────────────────────────────────────────
+function renderProducts() {
+  const grid = document.getElementById('productGrid');
+  if (!products.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <div class="ei">🛋️</div><h3>No products yet</h3>
+      <p>Add Product tab-ல் model select பண்ணி add பண்ணுங்க.</p></div>`;
+    return;
+  }
+  grid.innerHTML = products.map(p => `
+    <div class="product-card">
+      <div class="product-thumb">
+        ${catIcons[p.category]||'📦'}
+        <span class="badge-ar">AR</span>
+        <span class="badge-gh">GitHub</span>
+      </div>
+      <div class="product-body">
+        <div class="product-name">${p.name}</div>
+        <div class="product-cat">${catIcons[p.category]||''} ${p.category}</div>
+        <div class="dims-chips">
+          <span class="dim-chip">↔️ ${p.w}cm</span>
+          <span class="dim-chip">↕️ ${p.h}cm</span>
+          <span class="dim-chip">↗️ ${p.l}cm</span>
+        </div>
+        ${p.price?`<div style="font-size:.86rem;color:var(--accent3);font-weight:600;margin-bottom:8px">₹${Number(p.price).toLocaleString('en-IN')}</div>`:''}
+        <div style="font-size:.72rem;color:var(--text-dim);margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.modelUrl}">📁 ${p.modelName}</div>
+        <div class="product-actions">
+          <button class="btn btn-secondary" style="flex:1;font-size:.78rem" onclick="openQR(products.find(x=>x.id==${p.id}))">📱 QR Code</button>
+          <button class="btn btn-secondary" style="flex:1;font-size:.78rem" onclick="previewAR(${p.id})">🥽 Preview</button>
+          <button class="btn btn-danger" onclick="delProduct(${p.id})">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function delProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  products = products.filter(p => p.id !== id);
+  localStorage.setItem('arProducts_v3', JSON.stringify(products));
+  renderProducts();
+}
+
+// ─── AR Preview (inline) ──────────────────────────────────────────────────
+function previewAR(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  // Open ar-viewer.html in new tab with URL params
+  const params = new URLSearchParams({
+    name: p.name, category: p.category,
+    w: p.w, h: p.h, l: p.l,
+    modelUrl: p.modelUrl
+  });
+  window.open('ar-viewer.html?' + params.toString(), '_blank');
+}
+
+// ─── QR Code ──────────────────────────────────────────────────────────────
+function openQR(product) {
+  const base = window.location.href.replace(/index\.html.*/, '').replace(/[?#].*/, '');
+  const arBase = base.endsWith('/') ? base + 'ar-viewer.html' : base + '/ar-viewer.html';
+
+  const params = new URLSearchParams({
+    name:     product.name,
+    category: product.category,
+    w:        product.w,
+    h:        product.h,
+    l:        product.l,
+    modelUrl: product.modelUrl
+  });
+  const url = arBase + '?' + params.toString();
+  currentQRUrl = url;
+
+  document.getElementById('qrSub').textContent = product.name + ' — ' + product.w + '×' + product.h + '×' + product.l + ' cm';
+
+  const div = document.getElementById('qrDiv');
+  div.innerHTML = '';
+  new QRCode(div, {
+    text: url,
+    width: 200, height: 200,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  document.getElementById('qrModal').classList.add('open');
+}
+
+function closeQR() { document.getElementById('qrModal').classList.remove('open'); }
+
+function dlQR() {
+  const canvas = document.querySelector('#qrDiv canvas');
+  if (!canvas) return;
+  const a = document.createElement('a');
+  a.download = 'AR-QR.png'; a.href = canvas.toDataURL(); a.click();
+}
+
+function copyQRLink() {
+  if (!currentQRUrl) return;
+  navigator.clipboard.writeText(currentQRUrl).then(() => showToast('🔗 AR link copied!'));
+}
+
+document.getElementById('qrModal').addEventListener('click', e => { if (e.target.id === 'qrModal') closeQR(); });
+
+// ─── Toast ────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+loadGHConfig();
+</script>
+</body>
+</html>
